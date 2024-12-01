@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
+  <title>My Books</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .container { padding: 20px; max-width: 600px; margin: auto; }
+    .nav { margin-bottom: 20px; }
+    .nav a { margin-right: 10px; text-decoration: none; color: blue; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+
+    input, textarea, select {
+      font-size: 16px; /* Prevent zoom on mobile */
+    }
+
+    .status-bubble {
+      display: inline-block;
+      width: 12px; /* Size of the bubble */
+      height: 12px;
+      border-radius: 50%; /* Makes it a circle */
+      margin-right: 8px; /* Space between bubble and text */
+    }
+
+    /* Colors for different statuses */
+    .not-read {
+      background-color: red;
+    }
+
+    .reading {
+      background-color: yellow;
+      border: 1px solid #aaa; /* Adds contrast for yellow */
+    }
+
+    .read {
+      background-color: green;
+    }
+
+    #page-container {
+      position: relative;
+      width: 100%;
+      height: 100vh; /* Ensure it takes up the full viewport height */
+      overflow: hidden; /* Prevent scrollbars during transitions */
+    }
+    #main-page, #read-page {
+      position: absolute;
+      width: 100%;
+      height: 100%; /* Ensure full height for the page content */
+      top: 0;
+      transition: left 0.3s ease-in-out; /* Smooth page transitions */
+    }
+    #main-page {
+      left: 0; /* Default: All Books page is visible */
+    }
+    #read-page {
+      left: 100%; /* Initially positioned off-screen to the right */
+    }
+    #goal-tracker {
+      text-align: center;
+      margin-top: 20px;
+    }
+    #goal-tracker button {
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="goal-tracker"></div>
+    <div class="nav">
+      <a id="show-all-books" onclick="showPage('all')">All Books</a>
+      <a id="show-read-books" onclick="showPage('read')">Read Books</a>
+    </div>
+    <div id="page-container" style="overflow: hidden; width: 100%; position: relative;">
+      <!-- Main Page -->
+      <div id="main-page" style="position: absolute; width: 100%; left: 0;">
+        <form id="book-form">
+          <input type="text" id="book-title" placeholder="Book Title" required>
+          <button type="submit">Add Book</button>
+        </form>
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="book-list"></tbody>
+        </table>
+      </div>
+      <!-- Read Books Page -->
+      <div id="read-page" style="position: absolute; width: 100%; left: 100%;">
+        <h2>Read Books</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Read On</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="read-book-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
