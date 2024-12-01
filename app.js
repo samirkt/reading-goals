@@ -232,10 +232,64 @@ function showPage(page) {
   }
 }
 
+let sortState = {
+  column: null,
+  direction: 'asc', // 'asc' or 'desc'
+};
+
+function sortTable(column, table = 'all') {
+  const direction = sortState.column === column && sortState.direction === 'asc' ? 'desc' : 'asc';
+  sortState = { column, direction };
+
+  const sortedBooks = [...books].sort((a, b) => {
+    let valA = a[column] || '';
+    let valB = b[column] || '';
+
+    // For dates, convert to Date objects
+    if (column === 'timestamp') {
+      valA = new Date(valA);
+      valB = new Date(valB);
+    }
+
+    if (valA < valB) return direction === 'asc' ? -1 : 1;
+    if (valA > valB) return direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  if (table === 'all') {
+    books = sortedBooks;
+    renderBooks();
+  } else if (table === 'read') {
+    renderReadBooks(sortedBooks);
+  }
+
+  updateSortIcons(column, table, direction);
+}
+
+function updateSortIcons(column, table, direction) {
+  const icons = document.querySelectorAll('span[id^="sort-icon"]');
+  icons.forEach(icon => (icon.textContent = '')); // Clear all icons
+
+  const iconId = table === 'all' ? `sort-icon-${column}` : `sort-icon-read-${column}`;
+  const icon = document.getElementById(iconId);
+  icon.textContent = direction === 'asc' ? '↑' : '↓';
+}
+
+function renderReadBooks(sortedBooks = books.filter(book => book.status === 'Read')) {
+  readBookList.innerHTML = sortedBooks
+    .map((book, index) => `
+      <tr>
+        <td>${book.title}</td>
+        <td>${book.timestamp || 'N/A'}</td>
+        <td><button onclick="deleteBook(${index}, 'read')">Delete</button></td>
+      </tr>
+    `).join('');
+}
+
 // Add touch event listeners to the page container
 const pageContainer = document.getElementById("page-container");
-pageContainer.addEventListener("touchstart", handleTouchStart);
-pageContainer.addEventListener("touchend", handleTouchEnd);
+pageContainer.addEventListener("touchstart", handleTouchStart, { passive: true });
+pageContainer.addEventListener("touchend", handleTouchEnd, { passive: true });
 
 // Initial render
 renderBooks();

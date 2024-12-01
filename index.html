@@ -86,8 +86,8 @@
         <table>
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Status</th>
+              <th onclick="sortTable('title')">Title <span id="sort-icon-title"></span></th>
+              <th onclick="sortTable('status')">Status <span id="sort-icon-status"></span></th>
               <th>Action</th>
             </tr>
           </thead>
@@ -100,8 +100,8 @@
         <table>
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Read On</th>
+              <th onclick="sortTable('title', 'read')">Title <span id="sort-icon-read-title"></span></th>
+              <th onclick="sortTable('timestamp', 'read')">Read On <span id="sort-icon-read-timestamp"></span></th>
               <th>Action</th>
             </tr>
           </thead>
