@@ -22,6 +22,7 @@ function renderBooks() {
           ${book.status}
         </span>
       </td>
+      <td>${book.added || 'N/A'}</td>
       <td><button onclick="deleteBook(${index})">Delete</button></td>
     </tr>
   `).join('');
@@ -44,12 +45,13 @@ function renderReadBooks() {
 bookForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const title = document.getElementById("book-title").value;
-  books.push({ title, status: "Not Read", timestamp: null });
+  const now = new Date().toLocaleString(); // Human-readable format
+  books.unshift({ title, status: "Not Read", timestamp: null, added: now }); // Add to the beginning
   saveBooks();
-  renderBooks();
-  renderReadBooks();
+  sortTable('added', 'all', 'desc'); // Sort by "Date Added" to ensure correct order
   bookForm.reset();
 });
+
 
 // Change book status
 window.changeStatus = (index) => {
@@ -95,7 +97,7 @@ function showPage(page) {
 const goalTracker = {
   name: localStorage.getItem("goalName") || "My Reading Goal",
   target: parseInt(localStorage.getItem("goalTarget"), 10) || 0,
-  completed: 0,
+  completed: books.filter(book => book.status === "Read").length,
 
   // Save goal data to localStorage
   save() {
@@ -163,10 +165,14 @@ function showGoalForm() {
   trackerElement.innerHTML = `
     <h2>Set Reading Goal</h2>
     <form id="goal-form">
-      <label for="goal-name">Goal Name:</label>
-      <input type="text" id="goal-name" placeholder="e.g., 2025 Goal" required>
-      <label for="goal-target">Number of Books:</label>
-      <input type="number" id="goal-target" min="1" required>
+      <div>
+        <label for="goal-name">Goal Name:</label>
+        <input type="text" id="goal-name" placeholder="e.g., 2025 Goal" required>
+      </div>
+      <div>
+        <label for="goal-target">Number of Books:</label>
+        <input type="number" id="goal-target" min="1" required>
+      </div>
       <button type="submit">Save Goal</button>
     </form>
   `;
@@ -207,11 +213,11 @@ function handleSwipe() {
   const diffX = startX - endX;
 
   // Swipe left to switch to "Read Books"
-  if (diffX > 50 && currentPage === "all") {
+  if (diffX > 60 && currentPage === "all") {
     showPage("read");
   }
   // Swipe right to switch to "All Books"
-  else if (diffX < -50 && currentPage === "read") {
+  else if (diffX < -60 && currentPage === "read") {
     showPage("all");
   }
 }
@@ -232,21 +238,34 @@ function showPage(page) {
   }
 }
 
-let sortState = {
-  column: null,
-  direction: 'asc', // 'asc' or 'desc'
+const sortStates = {
+  all: { column: 'added', direction: 'desc' }, // Default: "Date Added" descending
+  read: { column: 'timestamp', direction: 'desc' }, // Default: "Completion Date" descending
 };
 
-function sortTable(column, table = 'all') {
-  const direction = sortState.column === column && sortState.direction === 'asc' ? 'desc' : 'asc';
-  sortState = { column, direction };
+const statusOrder = ["Not Read", "Reading", "Read"];
 
-  const sortedBooks = [...books].sort((a, b) => {
+function sortTable(column, table = 'all', direction = null) {
+  direction = direction || (sortStates[table].column === column && sortStates[table].direction === 'asc' ? 'desc' : 'asc');
+  sortStates[table] = { column, direction };
+
+  let booksToSort = [...books];
+  if (table === 'read') {
+    booksToSort = booksToSort.filter(book => book.status === 'Read');
+  }
+
+  booksToSort.sort((a, b) => {
     let valA = a[column] || '';
     let valB = b[column] || '';
 
-    // For dates, convert to Date objects
-    if (column === 'timestamp') {
+    // Custom sorting for the "status" column
+    if (column === 'status') {
+      valA = statusOrder.indexOf(valA);
+      valB = statusOrder.indexOf(valB);
+    }
+
+    // Convert dates for comparison
+    if (column === 'timestamp' || column === 'added') {
       valA = new Date(valA);
       valB = new Date(valB);
     }
@@ -257,26 +276,31 @@ function sortTable(column, table = 'all') {
   });
 
   if (table === 'all') {
-    books = sortedBooks;
+    books = booksToSort;
     renderBooks();
   } else if (table === 'read') {
-    renderReadBooks(sortedBooks);
+    renderReadBooks(booksToSort);
   }
 
   updateSortIcons(column, table, direction);
 }
 
 function updateSortIcons(column, table, direction) {
-  const icons = document.querySelectorAll('span[id^="sort-icon"]');
-  icons.forEach(icon => (icon.textContent = '')); // Clear all icons
+  // Clear all icons for the relevant table
+  const icons = document.querySelectorAll(`span[id^="sort-icon-${table}"]`);
+  icons.forEach(icon => (icon.textContent = ''));
 
-  const iconId = table === 'all' ? `sort-icon-${column}` : `sort-icon-read-${column}`;
+  // Set the active column's icon
+  const iconId = `sort-icon-${table}-${column}`;
   const icon = document.getElementById(iconId);
-  icon.textContent = direction === 'asc' ? '↑' : '↓';
+  if (icon) {
+    icon.textContent = direction === 'asc' ? '↑' : '↓';
+  }
 }
 
-function renderReadBooks(sortedBooks = books.filter(book => book.status === 'Read')) {
-  readBookList.innerHTML = sortedBooks
+function renderReadBooks() {
+  const readBooks = books.filter(book => book.status === 'Read'); // Filter for "Read" books
+  readBookList.innerHTML = readBooks
     .map((book, index) => `
       <tr>
         <td>${book.title}</td>
@@ -285,6 +309,11 @@ function renderReadBooks(sortedBooks = books.filter(book => book.status === 'Rea
       </tr>
     `).join('');
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  sortTable('added', 'all', 'desc'); // Ensure default sorting is descending by "Date Added"
+  sortTable('timestamp', 'read', 'desc'); // Ensure default sorting is descending by "Date Added"
+});
 
 // Add touch event listeners to the page container
 const pageContainer = document.getElementById("page-container");
