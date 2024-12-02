@@ -1,15 +1,27 @@
-const CACHE_NAME = "book-tracker-cache";
-const assets = ["/", "/index.html", "/app.js", "/manifest.json"];
+const CACHE_NAME = 'book-tracker-cache';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/app.js',
+  '/manifest.json',
+  'https://cdn.jsdelivr.net/npm/tesseract.js',
+];
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(assets))
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
   );
 });
 
-self.addEventListener("fetch", (e) => {
-  e.respondWith(
-    caches.match(e.request).then((response) => response || fetch(e.request))
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      })
   );
 });
-

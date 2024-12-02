@@ -11,7 +11,14 @@
     .nav { margin-bottom: 20px; }
     .nav a { margin-right: 10px; text-decoration: none; color: blue; cursor: pointer; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+      word-wrap: break-word; /* Allow text to break into multiple lines */
+      word-break: break-word; /* Ensure words can break if necessary */
+      hyphens: auto; /* Enable hyphenation for long words */
+    }
 
     input, textarea, select {
       font-size: 16px; /* Prevent zoom on mobile */
@@ -68,6 +75,8 @@
       cursor: pointer;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
 </head>
 <body>
   <div class="container">
@@ -79,17 +88,23 @@
     <div id="page-container" style="overflow: hidden; width: 100%; position: relative;">
       <!-- Main Page -->
       <div id="main-page" style="position: absolute; width: 100%; left: 0;">
+        <!-- Add Book Button (inside book-form) -->
         <form id="book-form">
-          <input type="text" id="book-title" placeholder="Book Title" required>
+          <label for="book-title">Book Title:</label>
+          <input type="text" id="book-title" required>
           <button type="submit">Add Book</button>
+          <!-- Camera Button -->
+          <button type="button" id="camera-btn">Snap a Picture</button>
         </form>
+        <!-- Camera input (hidden, will be triggered by the button) -->
+        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;">
         <table>
           <thead>
             <tr>
               <th onclick="sortTable('title', 'all')">Title <span id="sort-icon-all-title"></span></th>
               <th onclick="sortTable('status', 'all')">Status <span id="sort-icon-all-status"></span></th>
               <th onclick="sortTable('added', 'all')">Date Added <span id="sort-icon-all-added"></span></th>
-              <th>Action</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="book-list"></tbody>
@@ -103,7 +118,7 @@
             <tr>
               <th onclick="sortTable('title', 'read')">Title <span id="sort-icon-read-title"></span></th>
               <th onclick="sortTable('timestamp', 'read')">Read On <span id="sort-icon-read-timestamp"></span></th>
-              <th>Action</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="read-book-list"></tbody>

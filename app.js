@@ -23,7 +23,7 @@ function renderBooks() {
         </span>
       </td>
       <td>${book.added || 'N/A'}</td>
-      <td><button onclick="deleteBook(${index})">Delete</button></td>
+      <td><button onclick="deleteBook(${index})">X</button></td>
     </tr>
   `).join('');
 }
@@ -36,22 +36,25 @@ function renderReadBooks() {
       <tr>
         <td>${book.title}</td>
         <td>${book.timestamp || 'N/A'}</td>
-        <td><button onclick="deleteBook(${index}, 'read')">Delete</button></td>
+        <td><button onclick="deleteBook(${index}, 'read')">X</button></td>
       </tr>
     `).join('');
+}
+
+function addToTable(title) {
+  const now = new Date().toLocaleString(); // Human-readable format
+  books.unshift({ title, status: "Not Read", timestamp: null, added: now }); // Add to the beginning
+  saveBooks();
+  sortTable('added', 'all', 'desc'); // Sort by "Date Added" to ensure correct order
 }
 
 // Add a new book
 bookForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const title = document.getElementById("book-title").value;
-  const now = new Date().toLocaleString(); // Human-readable format
-  books.unshift({ title, status: "Not Read", timestamp: null, added: now }); // Add to the beginning
-  saveBooks();
-  sortTable('added', 'all', 'desc'); // Sort by "Date Added" to ensure correct order
+  addToTable(title);
   bookForm.reset();
 });
-
 
 // Change book status
 window.changeStatus = (index) => {
@@ -82,17 +85,6 @@ window.deleteBook = (index, page) => {
     showPage("read");
   }
 };
-
-// Show specific page
-function showPage(page) {
-  if (page === "all") {
-    mainPage.style.display = "block";
-    readPage.style.display = "none";
-  } else if (page === "read") {
-    mainPage.style.display = "none";
-    readPage.style.display = "block";
-  }
-}
 
 const goalTracker = {
   name: localStorage.getItem("goalName") || "My Reading Goal",
@@ -298,16 +290,59 @@ function updateSortIcons(column, table, direction) {
   }
 }
 
-function renderReadBooks() {
-  const readBooks = books.filter(book => book.status === 'Read'); // Filter for "Read" books
-  readBookList.innerHTML = readBooks
-    .map((book, index) => `
-      <tr>
-        <td>${book.title}</td>
-        <td>${book.timestamp || 'N/A'}</td>
-        <td><button onclick="deleteBook(${index}, 'read')">Delete</button></td>
-      </tr>
-    `).join('');
+// Select camera button and input
+const cameraBtn = document.getElementById("camera-btn");
+const cameraInput = document.getElementById("camera-input");
+
+// Camera button click event
+cameraBtn.addEventListener("click", () => {
+  cameraInput.click(); // Open the camera dialog
+});
+
+// Handle file input change (when user captures an image)
+cameraInput.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const imgElement = document.createElement("img");
+      imgElement.src = e.target.result;
+      imgElement.alt = "Captured Image";
+      imgElement.style.maxWidth = "300px"; // Adjust size as needed
+
+      // Optionally, display the image on the page
+      document.body.appendChild(imgElement);
+
+      console.log('Processing!!')
+
+      // Process the image with Tesseract OCR
+      Tesseract.recognize(
+        imgElement.src, // Image source (base64 URL)
+        'eng', // Language (you can also use other language data like 'eng+deu' for multiple languages)
+        {
+          logger: (m) => console.log(m), // Optional: log progress
+          tessedit_char_whitelist: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890", // Limit characters to basic alphanumeric for title recognition,
+          ocr_engine_mode: 1, // Use LSTM for better accuracy
+          tessedit_pageseg_mode: 3, // Auto page segmentation
+        }
+      ).then(({ data: { text, words } }) => {
+        console.log('Recognized Text:', text); // Output OCR result
+        console.log('Recognized Words:', words); // Output OCR result
+        const bookTitle = extractTitleFromText(text);
+        console.log('Book Title:', bookTitle); // Display the extracted title
+        addToTable(bookTitle);
+      });
+    };
+    reader.readAsDataURL(file); // Convert image to base64
+  }
+});
+
+function extractTitleFromText(text) {
+  // Strip newline characters and combine all words into a single sentence
+  const combinedText = text.replace(/\n/g, " ").trim();
+  
+  // Return the cleaned-up combined text
+  return combinedText || "Title not found";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -325,8 +360,14 @@ renderBooks();
 renderReadBooks();
 renderGoalTracker();
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").then(() => {
-    console.log("Service Worker Registered");
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('Service Worker registration failed:', error);
+      });
   });
 }
